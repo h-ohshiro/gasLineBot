@@ -49,7 +49,7 @@ function isWateringDay(sh, range, date) {
     console.log("年が一緒");
     if (date.getMonth() == calDate.getMonth()) {
       console.log("月が一緒");
-      if (date.getDate() != calDate.getDate()) {
+      if (date.getDate() == calDate.getDate()) {
         console.log("日が一緒");
         return true;
       }
