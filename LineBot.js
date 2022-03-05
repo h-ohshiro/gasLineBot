@@ -1,7 +1,7 @@
 // アクセストークンとuserIdを設定
 // userIDはビジネスアカウントでログインした場合、LINEアカウントと連携すると表示される。
 const CHANNEL_ACCESS_TOKEN = "アクセストークン";
-const to = "ユーザーID";
+const To = "ユーザーID";
 
 function main() {
   // スプレッドシートの入力値を取得
@@ -13,8 +13,9 @@ function main() {
 
   // 水やりの日だけLINE送信
   if (isWateringDay(sh, range, date)) {
-    const message = range.getCell(month, 3).getValue(); //メッセージを取得
-    return push(message);
+    const message = range.getCell(month, 3).getValue(); // メッセージを取得
+    push(message); // LINEメッセージ送信
+    registCalenderEvent(range, month);
   }
 }
 
@@ -39,26 +40,45 @@ function isWateringDay(sh, range, date) {
       calDate.setDate(calDate.getDate() + numberOfMonth[calDate.getMonth()]);
     }
   }
+
   console.log("現在年月日:" + date);
   console.log("次回の水やり日:" + calDate);
-
-  // ここから検証用、後で消す
-  // calDate.setDate(5);
-  // console.log("次回の水やり日（検証用）:" + calDate);
-  // ここまで検証用
 
   // 現在年月日と水やりの日付が一致した場合、trueを返す
   if (date.getFullYear() == calDate.getFullYear()) {
     console.log("年が一緒");
     if (date.getMonth() == calDate.getMonth()) {
       console.log("月が一緒");
-      if (date.getDate() == calDate.getDate()) {
+      if (date.getDate() != calDate.getDate()) {
         console.log("日が一緒");
         return true;
       }
     }
   }
   return false;
+}
+
+// 次回の水やり日をgoogleカレンダーに登録
+function registCalenderEvent(range, month) {
+  //　カレンダーに登録する日時を作成
+  let nextWateringDayStart = new wateringDateToCalendar(7, 0, range, month);
+  let nextWateringDayEnd = new wateringDateToCalendar(8, 0, range, month);
+
+  // アクセス可能なカレンダーのIDを指定して、Googleカレンダーを取得する
+  let myCalendar = CalendarApp.getCalendarById("xxxxxxxxxxxx@gmail.com");
+  myCalendar.createEvent("水やり", nextWateringDayStart, nextWateringDayEnd);
+}
+
+// カレンダー用date
+function wateringDateToCalendar(hour, minutes, range, month) {
+  let date = new Date();
+  // 時間を設定
+  date.setHours(hour);
+  date.setMinutes(minutes);
+  // 日（次回の水やりの日）を設定
+  date.setDate(date.getDate() + range.getCell(month, 2).getValue());
+
+  return date;
 }
 
 // プッシュ
