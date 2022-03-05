@@ -3,47 +3,65 @@
 const CHANNEL_ACCESS_TOKEN = "アクセストークン";
 const to = "ユーザーID";
 
-function pushMessage() {
-  // スプレッドシートの水やりの周期を取得する。
-  let date = new Date();
-  date.setHours(date.getHours() + 14); //+14で日本時刻に調整
-  date = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const month = date.getMonth() + 1;
+function main() {
+  // スプレッドシートの入力値を取得
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheets()[0];
   const range = sh.getRange("A5:C16");
-  const periodCycle = range.getCell(month, 2).getValue();
+  const date = new Date();
+  const month = date.getMonth() + 1;
 
-  // スプレッドシートの水やりを開始した日を取得する。
-  const start = sh.getRange("A1").getValue();
-  let startDay = new Date(start);
-  startDay.setHours(startDay.getHours() + 14); //+14で日本時刻に調整
-  startDay = new Date(startDay.getFullYear(), startDay.getMonth(), startDay.getDate());
-  const wateringDay = startDay;
-
-  // 水やりする日を更新する。
-  while (date > wateringDay) {
-    wateringDay.setDate(wateringDay.getDate() + periodCycle);
-  }
-  //   現在年月日と水やりの日付を比較し、一致した場合、送信する内容をスプレッドシートより取得しpushする。
-  const dateYear = date.getFullYear();
-  const dateMonth = date.getMonth() + 1;
-  const dateDay = date.getDate();
-  const nextWateringYear = wateringDay.getFullYear();
-  const nextWateringMonth = wateringDay.getMonth() + 1;
-  const nextWateringDay = wateringDay.getDate();
-
-  if (dateYear == nextWateringYear) {
-    if (dateMonth == nextWateringMonth) {
-      if (dateDay == nextWateringDay) {
-        const message = range.getCell(month, 3).getValue();
-        return push(message);
-      }
-    }
+  // 水やりの日だけLINE送信
+  if (isWateringDay(sh, range, date)) {
+    const message = range.getCell(month, 3).getValue(); //メッセージを取得
+    return push(message);
   }
 }
 
-//メッセージを送信する関数を作成する。
+/*
+  スプレッドシートのデータを取得し、次回の水やり日を演算する
+  @return：当日が水やり日→true、それ以外→false
+*/
+function isWateringDay(sh, range, date) {
+  // スプレッドシートの毎月の水やり周期を取得
+  let numberOfMonth = [];
+  for (let i = 1; i <= 12; i++) {
+    numberOfMonth.push(range.getCell(i, 2).getValue());
+  }
+
+  // スプレッドシートの水やり起点（開始日）を取得
+  const start = sh.getRange("A1").getValue();
+  let calDate = new Date(start);
+
+  // 水やりする日を更新
+  while (date > calDate) {
+    if (date.getDate >= calDate.getDate) {
+      calDate.setDate(calDate.getDate() + numberOfMonth[calDate.getMonth()]);
+    }
+  }
+  console.log("現在年月日:" + date);
+  console.log("次回の水やり日:" + calDate);
+
+  // ここから検証用、後で消す
+  // calDate.setDate(5);
+  // console.log("次回の水やり日（検証用）:" + calDate);
+  // ここまで検証用
+
+  // 現在年月日と水やりの日付が一致した場合、trueを返す
+  if (date.getFullYear() == calDate.getFullYear()) {
+    console.log("年が一緒");
+    if (date.getMonth() == calDate.getMonth()) {
+      console.log("月が一緒");
+      if (date.getDate() == calDate.getDate()) {
+        console.log("日が一緒");
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// プッシュ
 function push(text) {
   const url = "https://api.line.me/v2/bot/message/push";
   const headers = {
@@ -52,7 +70,7 @@ function push(text) {
   };
 
   const postData = {
-    to: to,
+    to: TO,
     messages: [
       {
         type: "text",
